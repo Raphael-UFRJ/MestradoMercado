@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
 from usando_dataclass.mercado import Mercado
 from usando_dataclass.agente import Agente
+from usando_dataclass.order_book import OrderBook
 
 
 def main():
-    # Inicializando o mercado B3
+    # Inicializando o mercado B3 e o livro de ordens
     mercado_b3 = Mercado()
+    livro_ordens = OrderBook()
 
     # Adicionando ativos na bolsa B3
     mercado_b3.adicionar_ativo("PETR4", 28.50)
@@ -34,7 +36,7 @@ def main():
     ]
 
     rodadas = 10
-    precos_mercado = {  # Armazenar a evolução dos preços dos ativos
+    precos_mercado = {
         "PETR4": [],
         "VALE3": [],
     }
@@ -43,18 +45,15 @@ def main():
     for rodada in range(rodadas):
         print(f"\nRodada {rodada + 1}")
         for agente in agentes:
-            agente.tomar_decisao(mercado_b3)
+            agente.tomar_decisao(mercado_b3, livro_ordens)  # Passar Mercado e OrderBook
 
-        mercado_b3.execucao()
-
-        # Armazenar os preços dos ativos após cada rodada, mantendo o último preço se não houver alteração
+        # Executar as ordens e ajustar os preços
         for ativo in mercado_b3.ativos:
-            if len(precos_mercado[ativo]) == 0:
-                # Se for a primeira rodada, adicionar o preço inicial
-                precos_mercado[ativo].append(mercado_b3.ativos[ativo])
-            else:
-                # Se não houve mudança no preço, repetir o último preço
-                precos_mercado[ativo].append(mercado_b3.ativos[ativo])
+            livro_ordens.executar_ordens(ativo)
+
+        # Armazenar os preços dos ativos após cada rodada
+        for ativo in mercado_b3.ativos:
+            precos_mercado[ativo].append(mercado_b3.ativos[ativo])
 
     # Plotando o gráfico da evolução do preço dos ativos
     plt.figure(figsize=(10, 5))

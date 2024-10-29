@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from typing import List, Dict
-import random
 
 
 @dataclass
@@ -21,37 +20,29 @@ class Mercado:
         """Adiciona um ativo ao mercado com o preço inicial."""
         self.ativos[nome_ativo] = preco_inicial
 
-    def ordem_limitada(self, tipo_ordem: str, ativo: str, preco_limite: float, quantidade: int) -> None:
+    def ordem_limitada(
+        self, tipo_ordem: str, ativo: str, preco_limite: float, quantidade: int
+    ) -> None:
         """Adiciona uma ordem limitada para um ativo no mercado."""
         if tipo_ordem not in self.book:
             self.book[tipo_ordem] = []
-        self.book[tipo_ordem].append({"ativo": ativo, "preco": preco_limite, "quantidade": quantidade})
-        print(f"Ordem Limitada adicionada: {tipo_ordem} {quantidade} de {ativo} a {preco_limite}")
-
-
-    def ordem_a_mercado(self, tipo_ordem: str, quantidade: int) -> None:
-        """Executa uma ordem a mercado."""
-        if tipo_ordem == "compra":
-            melhor_preco_venda = min(
-                ordem["preco"] for ordem in self.book.get("venda", [])
-            )
-            print(
-                f"Ordem a Mercado (Compra): {quantidade} ativos a {melhor_preco_venda}"
-            )
-        elif tipo_ordem == "venda":
-            melhor_preco_compra = max(
-                ordem["preco"] for ordem in self.book.get("compra", [])
-            )
-            print(
-                f"Ordem a Mercado (Venda): {quantidade} ativos a {melhor_preco_compra}"
-            )
+        self.book[tipo_ordem].append(
+            {"ativo": ativo, "preco": preco_limite, "quantidade": quantidade}
+        )
+        print(
+            f"Ordem Limitada adicionada: {tipo_ordem} {quantidade} de {ativo} a {preco_limite}"
+        )
 
     def execucao(self) -> None:
         """Executa as ordens limitadas se houver coincidência de preços."""
         for ativo in self.ativos:
             if "compra" in self.book and "venda" in self.book:
-                ordens_compra = [ordem for ordem in self.book["compra"] if ordem["ativo"] == ativo]
-                ordens_venda = [ordem for ordem in self.book["venda"] if ordem["ativo"] == ativo]
+                ordens_compra = [
+                    ordem for ordem in self.book["compra"] if ordem["ativo"] == ativo
+                ]
+                ordens_venda = [
+                    ordem for ordem in self.book["venda"] if ordem["ativo"] == ativo
+                ]
 
                 if ordens_compra and ordens_venda:
                     melhor_preco_compra = max(ordem["preco"] for ordem in ordens_compra)
@@ -59,13 +50,26 @@ class Mercado:
 
                     # Somente executa se o preço de compra for maior ou igual ao preço de venda
                     if melhor_preco_compra >= melhor_preco_venda:
-                        self.ativos[ativo] = (melhor_preco_compra + melhor_preco_venda) / 2
+                        # Ajusta o preço do ativo como a média dos melhores preços de compra e venda
+                        self.ativos[ativo] = (
+                            melhor_preco_compra + melhor_preco_venda
+                        ) / 2
                         print(f"Preço ajustado para {ativo}: {self.ativos[ativo]}")
 
-                        # Limpar as ordens executadas
-                        self.book["compra"] = []
-                        self.book["venda"] = []
+                        # Remove as ordens que foram executadas
+                        self.book["compra"] = [
+                            ordem
+                            for ordem in self.book["compra"]
+                            if ordem["preco"] != melhor_preco_compra
+                        ]
+                        self.book["venda"] = [
+                            ordem
+                            for ordem in self.book["venda"]
+                            if ordem["preco"] != melhor_preco_venda
+                        ]
+                    else:
+                        print(
+                            f"Sem execução para o ativo {ativo} (melhor preço de compra < melhor preço de venda)"
+                        )
                 else:
                     print(f"Sem ordens de compra ou venda para executar para {ativo}.")
-
-
