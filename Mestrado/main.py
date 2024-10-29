@@ -36,7 +36,7 @@ def main():
     ]
 
     rodadas = 10
-    precos_mercado = {
+    precos_mercado = {  # Armazenar a evolução dos preços dos ativos
         "PETR4": [],
         "VALE3": [],
     }
@@ -45,11 +45,12 @@ def main():
     for rodada in range(rodadas):
         print(f"\nRodada {rodada + 1}")
         for agente in agentes:
-            agente.tomar_decisao(mercado_b3, livro_ordens)  # Passar Mercado e OrderBook
+            agente.tomar_decisao(
+                mercado_b3, livro_ordens
+            )  # Passando o mercado e o livro de ordens
 
-        # Executar as ordens e ajustar os preços
         for ativo in mercado_b3.ativos:
-            livro_ordens.executar_ordens(ativo)
+            livro_ordens.executar_ordens(ativo)  # Executa as ordens para cada ativo
 
         # Armazenar os preços dos ativos após cada rodada
         for ativo in mercado_b3.ativos:

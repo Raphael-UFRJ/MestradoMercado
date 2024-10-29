@@ -9,12 +9,17 @@ class OrderBook:
     ordens_venda: List[Ordem] = field(default_factory=list)
 
     def adicionar_ordem(self, ordem: Ordem) -> None:
+        """Adiciona uma ordem ao book de ordens."""
         if ordem.tipo_ordem == "compra":
             self.ordens_compra.append(ordem)
         elif ordem.tipo_ordem == "venda":
             self.ordens_venda.append(ordem)
 
     def obter_melhor_preco_compra(self, ativo: str) -> float:
+        """Retorna o melhor precão de compra.
+
+        Se não houver ordens de compra, retorna None.
+        """
         compras_do_ativo = [
             ordem for ordem in self.ordens_compra if ordem.ativo == ativo
         ]
@@ -28,7 +33,7 @@ class OrderBook:
             return min(ordem.preco_limite for ordem in vendas_do_ativo)
         return None
 
-    def executar_ordens(self, ativo: str) -> None:
+    def executar_ordens(self, ativo: str, tolerancia: float = 0.05) -> None:
         """Executa as ordens de compra e venda, se possível."""
         melhor_preco_compra = self.obter_melhor_preco_compra(ativo)
         melhor_preco_venda = self.obter_melhor_preco_venda(ativo)
@@ -36,7 +41,7 @@ class OrderBook:
         if (
             melhor_preco_compra
             and melhor_preco_venda
-            and melhor_preco_compra >= melhor_preco_venda
+            and melhor_preco_compra >= melhor_preco_venda * (1 - tolerancia)
         ):
             print(
                 f"Executando ordens para {ativo} entre {melhor_preco_compra} e {melhor_preco_venda}"

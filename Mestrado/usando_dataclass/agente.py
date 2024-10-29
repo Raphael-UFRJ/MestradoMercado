@@ -29,19 +29,23 @@ class Agente:
 
         # Ajuste de expectativa com base no sentimento
         if self.sentimento == "positivo":
-            self.preco = min(self.expectativa[2], self.preco * 1.05)
+            self.preco = min(
+                self.expectativa[2], self.preco * random.uniform(1.05, 1.15)
+            )  # Aumentando variação
         elif self.sentimento == "negativo":
-            self.preco = max(self.expectativa[0], self.preco * 0.95)
+            self.preco = max(
+                self.expectativa[0], self.preco * random.uniform(0.85, 0.95)
+            )  # Aumentando variação
         else:
-            self.preco = self.expectativa[
-                1
-            ]  # Sentimento neutro, segue o preço esperado
+            self.preco = self.expectativa[1] + random.uniform(
+                -0.5, 0.5
+            )  # Aumentando incerteza
 
         # Ajuste baseado no conhecimento
         if self.conhecimento == "alto":
-            self.preco += random.uniform(-0.5, 0.5)
+            self.preco += random.uniform(-0.8, 0.8)
         elif self.conhecimento == "baixo":
-            self.preco += random.uniform(-1.0, 1.0)
+            self.preco += random.uniform(-1.5, 1.5)
 
     def tomar_decisao(self, mercado: Mercado, order_book) -> None:
         """Toma uma decisão de compra ou venda para o ativo específico após análise."""
