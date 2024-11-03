@@ -1,71 +1,63 @@
+import random
 import matplotlib.pyplot as plt
+from usando_dataclass.order_book import OrderBook
 from usando_dataclass.mercado import Mercado
 from usando_dataclass.agente import Agente
-from usando_dataclass.order_book import OrderBook
+
+
+def criar_agentes(num_agentes):
+    agentes = []
+    ativos = ["PETR4", "VALE3"]
+    for i in range(1, num_agentes + 1):
+        agente = Agente(
+            nome=f"Agente {i}",
+            ativo=random.choice(ativos),
+            sentimento=random.choice(["positivo", "negativo", "neutro"]),
+            expectativa=[
+                random.uniform(20, 30),
+                random.uniform(25, 35),
+                random.uniform(30, 40),
+            ],
+            preco=random.uniform(25, 35),
+            quantidade=random.randint(50, 300),
+            conhecimento=random.choice(["alto", "médio", "baixo"]),
+            saldo=random.uniform(1000, 10000),
+            acoes={ativo: random.randint(0, 1000) for ativo in ativos},
+            carteira=0.0,  # Definindo corretamente como um float
+        )
+        agentes.append(agente)
+    return agentes
 
 
 def main():
-    # Inicializando o mercado B3 e o livro de ordens
-    mercado_b3 = Mercado()
+    num_agentes = 10
+    num_rodadas = 10  # Ajustado para 10 rodadas
+    mercado = Mercado(ativos={"PETR4": 50, "VALE3": 45})
     livro_ordens = OrderBook()
+    agentes = criar_agentes(num_agentes)
 
-    # Adicionando ativos na bolsa B3
-    mercado_b3.adicionar_ativo("PETR4", 28.50)
-    mercado_b3.adicionar_ativo("VALE3", 68.90)
+    # Histórico de preços para cada ativo
+    historico_precos = {ativo: [] for ativo in mercado.ativos.keys()}
 
-    # Criando agentes que operam no mercado B3
-    agentes = [
-        Agente(
-            nome="Agente 1",
-            ativo="PETR4",
-            sentimento="positivo",
-            expectativa=[26, 28, 30],
-            preco=28.70,
-            quantidade=100,
-            conhecimento="alto",
-        ),
-        Agente(
-            nome="Agente 2",
-            ativo="VALE3",
-            sentimento="negativo",
-            expectativa=[65, 68, 72],
-            preco=69.00,
-            quantidade=50,
-            conhecimento="baixo",
-        ),
-    ]
-
-    rodadas = 10
-    precos_mercado = {  # Armazenar a evolução dos preços dos ativos
-        "PETR4": [],
-        "VALE3": [],
-    }
-
-    # Simulação de mercado
-    for rodada in range(rodadas):
-        print(f"\nRodada {rodada + 1}")
+    for rodada in range(1, num_rodadas + 1):
+        print(f"\nRodada {rodada}")
         for agente in agentes:
-            agente.tomar_decisao(
-                mercado_b3, livro_ordens
-            )  # Passando o mercado e o livro de ordens
+            agente.tomar_decisao(mercado, livro_ordens)
 
-        for ativo in mercado_b3.ativos:
-            livro_ordens.executar_ordens(ativo)  # Executa as ordens para cada ativo
+        for ativo in mercado.ativos.keys():
+            livro_ordens.executar_ordens(ativo, mercado)
+            historico_precos[ativo].append(mercado.ativos[ativo])
 
-        # Armazenar os preços dos ativos após cada rodada
-        for ativo in mercado_b3.ativos:
-            precos_mercado[ativo].append(mercado_b3.ativos[ativo])
+    # Plotando o gráfico para 10 rodadas
+    plt.figure(figsize=(10, 6))
+    for ativo, precos in historico_precos.items():
+        plt.plot(range(1, num_rodadas + 1), precos, label=ativo)
 
-    # Plotando o gráfico da evolução do preço dos ativos
-    plt.figure(figsize=(10, 5))
-    for ativo, precos in precos_mercado.items():
-        plt.plot(range(rodadas), precos, marker="o", label=ativo)
-
-    plt.title("Evolução do Preço dos Ativos no Mercado B3")
     plt.xlabel("Rodadas")
-    plt.ylabel("Preço")
+    plt.ylabel("Preço Médio")
+    plt.title("Variação dos Preços Médios dos Ativos ao Longo das Rodadas")
     plt.legend()
-    plt.grid(True)
+    plt.xticks(range(1, num_rodadas + 1))  # Define os ticks do eixo x de 1 a 10
     plt.show()
 
 
