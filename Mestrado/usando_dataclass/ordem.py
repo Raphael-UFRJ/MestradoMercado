@@ -1,15 +1,17 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class Ordem:
-    tipo_ordem: str  # "compra" ou "venda"
+    tipo: str  # "compra" ou "venda"
+    agente: object  # Referência ao agente que fez a ordem
     ativo: str
     preco_limite: float
-    quantidade: int 
+    quantidade: int
     quantidade_executada: int = 0
 
     def __repr__(self):
-        return f"Ordem({self.tipo_ordem}, {self.ativo}, {self.preco_limite}, {self.quantidade}, Executada: {self.quantidade_executada})"
+        return f"Ordem({self.tipo}, {self.ativo}, {self.preco_limite}, {self.quantidade}, Executada: {self.quantidade_executada})"
 
     def restante(self) -> int:
         """Retorna a quantidade restante a ser executada."""

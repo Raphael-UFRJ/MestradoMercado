@@ -6,8 +6,8 @@ from typing import List, Dict
 class Mercado:
     bolsa: str = "B3"
     ativos: Dict[str, float] = field(
-        default_factory=dict
-    )  # Ativos sendo negociados com seus preços
+        default_factory=lambda: {"PETR4": 50.0, "VALE3": 45.0}
+    )  # Ativos sendo negociados com seus preços, dois ativos padrões com seus preços iniciais
     book: Dict[str, List[Dict[str, float]]] = field(default_factory=dict)
 
     def __repr__(self) -> str:
@@ -32,6 +32,10 @@ class Mercado:
         print(
             f"Ordem Limitada adicionada: {tipo_ordem} {quantidade} de {ativo} a {preco_limite}"
         )
+
+    def atualizar_preco(self, ativo: str, novo_preco: float):
+        """Atualiza o preço de um ativo no mercado."""
+        self.ativos[ativo] = novo_preco
 
     def execucao(self) -> None:
         """Executa as ordens limitadas se houver coincidência de preços."""

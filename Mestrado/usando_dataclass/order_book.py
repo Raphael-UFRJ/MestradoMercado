@@ -1,82 +1,57 @@
 from dataclasses import dataclass, field
-from typing import List
-from .ordem import Ordem
+from .transacao import Transacao
 
 
 @dataclass
 class OrderBook:
-    ordens_compra: List[Ordem] = field(default_factory=list)
-    ordens_venda: List[Ordem] = field(default_factory=list)
+    ordens_compra: dict = field(default_factory=lambda: {})
+    ordens_venda: dict = field(default_factory=lambda: {})
 
-    def adicionar_ordem(self, ordem: Ordem) -> None:
-        """Adiciona uma ordem ao book de ordens."""
-        if ordem.tipo_ordem == "compra":
-            self.ordens_compra.append(ordem)
-        elif ordem.tipo_ordem == "venda":
-            self.ordens_venda.append(ordem)
+    def adicionar_ordem(self, ordem):
+        if ordem.tipo == "compra":
+            self.ordens_compra.setdefault(ordem.ativo, []).append(ordem)
+        elif ordem.tipo == "venda":
+            self.ordens_venda.setdefault(ordem.ativo, []).append(ordem)
 
-    def obter_melhor_preco_compra(self, ativo: str) -> float:
-        """Retorna o melhor precão de compra.
+    def executar_ordens(self, ativo, mercado):
+        # Ordena as ordens de compra e venda
+        if ativo in self.ordens_compra and ativo in self.ordens_venda:
+            self.ordens_compra[ativo].sort(key=lambda x: x.preco_limite, reverse=True)
+            self.ordens_venda[ativo].sort(key=lambda x: x.preco_limite)
 
-        Se não houver ordens de compra, retorna None.
-        """
-        compras_do_ativo = [
-            ordem for ordem in self.ordens_compra if ordem.ativo == ativo
-        ]
-        if compras_do_ativo:
-            return max(ordem.preco_limite for ordem in compras_do_ativo)
-        return None
+            while self.ordens_compra[ativo] and self.ordens_venda[ativo]:
+                ordem_compra = self.ordens_compra[ativo][0]
+                ordem_venda = self.ordens_venda[ativo][0]
 
-    def obter_melhor_preco_venda(self, ativo: str) -> float:
-        vendas_do_ativo = [ordem for ordem in self.ordens_venda if ordem.ativo == ativo]
-        if vendas_do_ativo:
-            return min(ordem.preco_limite for ordem in vendas_do_ativo)
-        return None
-
-    def executar_ordens(self, ativo: str, tolerancia: float = 0.05) -> None:
-        """Executa as ordens de compra e venda, se possível."""
-        melhor_preco_compra = self.obter_melhor_preco_compra(ativo)
-        melhor_preco_venda = self.obter_melhor_preco_venda(ativo)
-
-        if (
-            melhor_preco_compra
-            and melhor_preco_venda
-            and melhor_preco_compra >= melhor_preco_venda * (1 - tolerancia)
-        ):
-            print(
-                f"Executando ordens para {ativo} entre {melhor_preco_compra} e {melhor_preco_venda}"
-            )
-
-            ordens_compra_executadas = []
-            ordens_venda_executadas = []
-
-            for ordem_compra in self.ordens_compra:
-                if (
-                    ordem_compra.ativo == ativo
-                    and ordem_compra.preco_limite == melhor_preco_compra
-                ):
-                    print(
-                        f"Executando {ordem_compra.quantidade} unidades de {ativo} a {ordem_compra.preco_limite}"
+                if ordem_compra.preco_limite >= ordem_venda.preco_limite:
+                    # Define o preço de execução como a média entre a ordem de compra e venda
+                    preco_execucao = (
+                        ordem_compra.preco_limite + ordem_venda.preco_limite
+                    ) / 2
+                    quantidade_exec = min(
+                        ordem_compra.quantidade, ordem_venda.quantidade
                     )
-                    ordens_compra_executadas.append(ordem_compra)
 
-            for ordem_venda in self.ordens_venda:
-                if (
-                    ordem_venda.ativo == ativo
-                    and ordem_venda.preco_limite == melhor_preco_venda
-                ):
-                    print(
-                        f"Executando {ordem_venda.quantidade} unidades de {ativo} a {ordem_venda.preco_limite}"
+                    # Cria e executa a transação
+                    transacao = Transacao(
+                        comprador=ordem_compra.agente,
+                        vendedor=ordem_venda.agente,
+                        ativo=ativo,
+                        quantidade=quantidade_exec,
+                        preco_execucao=preco_execucao,
                     )
-                    ordens_venda_executadas.append(ordem_venda)
+                    transacao.executar()
 
-            # Remover as ordens executadas da lista
-            for ordem_compra in ordens_compra_executadas:
-                if ordem_compra in self.ordens_compra:
-                    self.ordens_compra.remove(ordem_compra)
+                    # Atualiza o preço no mercado
+                    mercado.ativos[ativo] = preco_execucao
 
-            for ordem_venda in ordens_venda_executadas:
-                if ordem_venda in self.ordens_venda:
-                    self.ordens_venda.remove(ordem_venda)
-        else:
-            print(f"Sem execução para {ativo}")
+                    # Ajusta as quantidades restantes
+                    ordem_compra.quantidade -= quantidade_exec
+                    ordem_venda.quantidade -= quantidade_exec
+
+                    if ordem_compra.quantidade == 0:
+                        self.ordens_compra[ativo].pop(0)
+                    if ordem_venda.quantidade == 0:
+                        self.ordens_venda[ativo].pop(0)
+                else:
+                    break
